@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f5f7fb" />
+  <meta name="description" content="离线可用的逻辑表达式工作台：解析逆波兰逻辑、查看公式树与有限论域真值表。" />
+  <title>逻辑表达式工作台 · Logic Studio</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="逻辑表达式工作台首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none"><rect x="2" y="2" width="36" height="36" rx="12" fill="currentColor"/><path d="M12 13h16M12 20h9M12 27h16" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="26" cy="20" r="3" fill="#9AE6CA"/></svg>
+        </span>
+        <span class="brand-copy"><strong>Logic Studio</strong><small>逻辑表达式工作台</small></span>
+      </a>
+      <div class="topbar-right">
+        <span class="local-badge"><span class="status-dot"></span>本地运行 · 无需上传</span>
+        <div class="top-actions">
+          <button class="button button-quiet" id="loadFileButton" type="button"><span aria-hidden="true">↥</span> 导入</button>
+          <button class="button button-quiet" id="exportTextButton" type="button"><span aria-hidden="true">↓</span> 导出表达式</button>
+          <button class="button button-primary" id="exportJsonButton" type="button"><span aria-hidden="true">＋</span> 保存项目</button>
+          <input id="fileInput" type="file" accept=".txt,.json,text/plain,application/json" hidden />
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="page-intro">
+        <div>
+          <p class="eyebrow">LOGIC DESIGN · 01</p>
+          <h1>把逻辑，变得看得见。</h1>
+          <p class="intro-copy">编写逆波兰表达式，探索公式结构与真值。量词可在有限论域上展开分析。</p>
+        </div>
+        <div class="intro-side">
+          <span class="version-pill">命题逻辑 <i></i> 一元谓词逻辑</span>
+          <span class="keyboard-hint"><kbd>⌘</kbd><kbd>↵</kbd> 分析表达式</span>
+        </div>
+      </section>
+
+      <div class="workbench">
+        <aside class="panel composer-panel">
+          <div class="panel-heading">
+            <div><span class="section-kicker">01 / INPUT</span><h2>表达式编辑器</h2></div>
+            <span class="heading-icon" aria-hidden="true">⌘</span>
+          </div>
+
+          <label class="field-label" for="expressionInput">逆波兰表达式 <span>RPN</span></label>
+          <textarea id="expressionInput" class="expression-input" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="expressionHelp">P(x) Q(x) > ∀x</textarea>
+          <div class="expression-footer"><span class="input-indicator"></span><span id="tokenCount">5 个符号</span><span class="footer-spacer"></span><span>空格分隔更易读</span></div>
+
+          <div class="domain-card">
+            <div class="domain-heading"><div><span class="domain-symbol">D</span><div><strong>有限论域</strong><small>量词将对每个元素展开</small></div></div><span class="domain-tag">DOMAIN</span></div>
+            <label for="domainInput" class="visually-hidden">论域元素，以逗号分隔</label>
+            <div class="domain-input-wrap"><span aria-hidden="true">{</span><input id="domainInput" type="text" value="a,b" autocomplete="off" aria-label="论域元素，以逗号分隔" /><span aria-hidden="true">}</span></div>
+            <div class="domain-note">输入 1–4 个元素，例如 <code>a,b</code></div>
+          </div>
+
+          <div class="sample-heading"><span>试试这些表达式</span><span class="sample-count">03</span></div>
+          <div class="sample-list">
+            <button class="sample-card selected" type="button" data-expression="P(x) Q(x) > ∀x" data-domain="a,b"><span class="sample-icon quant-icon">∀</span><span class="sample-copy"><strong>全称蕴含</strong><small>∀x (P(x) → Q(x))</small></span><span class="sample-arrow">↗</span></button>
+            <button class="sample-card" type="button" data-expression="A B , < C < D < , =" data-domain="a,b"><span class="sample-icon">≡</span><span class="sample-copy"><strong>德摩根律</strong><small>¬(A ∨ B) ↔ (¬C ∨ ¬D)</small></span><span class="sample-arrow">↗</span></button>
+            <button class="sample-card" type="button" data-expression="A B . C >" data-domain="a,b"><span class="sample-icon">→</span><span class="sample-copy"><strong>条件推理</strong><small>(A ∧ B) → C</small></span><span class="sample-arrow">↗</span></button>
+          </div>
+
+          <details class="syntax-details" id="syntaxDetails">
+            <summary><span class="summary-left"><span class="help-mark">?</span>操作符与语法</span><span class="chevron">⌄</span></summary>
+            <div class="syntax-content" id="expressionHelp">
+              <div class="operator-row"><code>.</code><span>逻辑与</span><kbd>∧</kbd></div>
+              <div class="operator-row"><code>,</code><span>逻辑或</span><kbd>∨</kbd></div>
+              <div class="operator-row"><code>&lt;</code><span>逻辑非（一元）</span><kbd>¬</kbd></div>
+              <div class="operator-row"><code>&gt;</code><span>逻辑推出</span><kbd>→</kbd></div>
+              <div class="operator-row"><code>=</code><span>逻辑等价</span><kbd>↔</kbd></div>
+              <div class="operator-row"><code>∀x</code><span>全称量词（后置）</span><kbd>∀x φ</kbd></div>
+              <div class="operator-row"><code>∃x</code><span>存在量词（后置）</span><kbd>∃x φ</kbd></div>
+              <p class="syntax-footnote">量词作用于它左侧最近构成的子式。谓词写作 <code>P(x)</code>，并由当前有限论域逐项展开。</p>
+            </div>
+          </details>
+
+          <div class="composer-buttons">
+            <button class="button button-primary analyze-button" id="analyzeButton" type="button"><span>分析表达式</span><span class="button-arrow">→</span></button>
+            <button class="button button-quiet reset-button" id="resetButton" type="button" aria-label="恢复示例">重置</button>
+          </div>
+          <p class="privacy-note"><span aria-hidden="true">◈</span> 所有计算都在此浏览器中完成</p>
+        </aside>
+
+        <div class="main-column">
+          <section class="panel canvas-panel" aria-labelledby="diagramTitle">
+            <div class="panel-heading canvas-heading">
+              <div><span class="section-kicker">02 / STRUCTURE</span><h2 id="diagramTitle">公式结构图</h2></div>
+              <div class="canvas-heading-right"><span class="live-indicator"><i></i> 已解析</span><button class="icon-button" id="fitDiagramButton" type="button" title="居中查看" aria-label="居中查看公式树">⤢</button></div>
+            </div>
+            <div class="formula-strip"><span class="formula-mark">ƒ</span><span class="formula-label">等价公式</span><span id="formulaPreview" class="formula-preview">∀x (P(x) → Q(x))</span><span class="formula-spacer"></span><span id="formulaComplexity" class="complexity-pill">4 个节点</span></div>
+            <div id="diagramViewport" class="diagram-viewport" tabindex="0" aria-label="逻辑表达式公式树">
+              <div id="diagram" class="diagram-tree"></div>
+            </div>
+            <div class="canvas-legend"><span><i class="legend-operator"></i> 逻辑运算符</span><span><i class="legend-quantifier"></i> 量词</span><span><i class="legend-atom"></i> 命题 / 谓词</span><span class="legend-hint">点击任一节点查看属性</span></div>
+          </section>
+
+          <section class="panel truth-panel" aria-labelledby="truthTitle">
+            <div class="panel-heading truth-heading">
+              <div><span class="section-kicker">03 / EVALUATION</span><h2 id="truthTitle">真值表</h2></div>
+              <div class="truth-heading-right"><span id="truthSummary" class="truth-summary">4 种赋值</span><button id="copyTruthButton" class="button button-small button-quiet" type="button">复制表格</button></div>
+            </div>
+            <div id="truthContent" class="truth-content"></div>
+          </section>
+        </div>
+
+        <aside class="panel inspector-panel">
+          <div class="panel-heading inspector-heading">
+            <div><span class="section-kicker">INSPECTOR</span><h2>节点属性</h2></div>
+            <span class="inspector-count" id="nodeCount">04</span>
+          </div>
+          <div class="inspector-preview"><div class="inspector-preview-top"><span class="selected-marker"></span><span id="selectedType">全称量词</span><span id="selectedPath" class="path-label">root</span></div><div id="selectedFormula" class="selected-formula">∀x</div></div>
+          <div class="inspector-fields">
+            <label class="field-label" for="annotationName">显示名称</label>
+            <input class="inspector-input" id="annotationName" type="text" placeholder="例如：全称约束" maxlength="40" />
+            <label class="field-label memo-label" for="annotationMemo">备注</label>
+            <textarea class="inspector-memo" id="annotationMemo" rows="4" placeholder="为这个逻辑节点添加说明…" maxlength="240"></textarea>
+            <button class="button button-outline" id="saveAnnotationButton" type="button">保存节点标注</button>
+          </div>
+          <div class="inspector-divider"></div>
+          <div class="inspector-section-title">表达式概览</div>
+          <div class="metric-list"><div class="metric-row"><span>原子项</span><strong id="atomMetric">4</strong></div><div class="metric-row"><span>论域大小</span><strong id="domainMetric">2</strong></div><div class="metric-row"><span>量词数量</span><strong id="quantifierMetric">1</strong></div><div class="metric-row"><span>表达式类型</span><strong id="logicTypeMetric">谓词逻辑</strong></div></div>
+          <div class="result-card"><span class="result-icon">✓</span><div><strong id="resultTitle">模型已分析</strong><p id="resultDescription">真值表按当前有限论域展开。</p></div></div>
+          <div class="inspector-footer"><span class="footer-orb"></span>浏览器本地计算<span class="footer-spacer"></span><span class="muted-version">v2.0</span></div>
+        </aside>
+      </div>
+    </main>
+    <footer class="page-footer"><span>LOGIC STUDIO <span class="footer-separator">/</span> 浏览器端逻辑分析</span><span>不依赖服务器 · 数据仅保存在本地</span></footer>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+</body>
+</html>
